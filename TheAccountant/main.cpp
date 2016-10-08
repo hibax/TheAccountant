@@ -93,7 +93,7 @@ string generateAction(Point myPosition, vector<Entity*> dataList, vector<Entity*
 	Point barycentre = calculateBarycentre(dataList);
 	cerr << "Barycentre : " + to_string(barycentre.x) + "," + to_string(barycentre.y) << endl;
 
-	if (calculateDistance(myPosition, barycentre) < 3500)
+	if (calculateDistance(myPosition, barycentre) < 3000)
 	{
 		return "SHOOT " + to_string(nearestEnemyId);
 	}
