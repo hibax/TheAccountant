@@ -27,3 +27,12 @@
 *.exe
 *.out
 *.app
+*.sln
+*.tlog
+*.suo
+/TheAccountant/TheAccountant/Debug
+/TheAccountant/TheAccountant/Release
+*.vcxproj
+*.opendb
+*.db
+*.filters
