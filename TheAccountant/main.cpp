@@ -6,6 +6,12 @@
 
 using namespace std;
 
+struct Point
+{
+	int x;
+	int y;
+};
+
 
 class Entity
 {
@@ -42,12 +48,6 @@ public:
 
 };
 
-
-struct Point
-{
-	int x;
-	int y;
-};
 
 float calculateDistance(const Point& p1, const Point& p2)
 {
