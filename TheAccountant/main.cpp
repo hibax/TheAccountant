@@ -3,6 +3,7 @@
 #include <vector>
 #include <algorithm>
 #include <assert.h>
+#include <ctime>
 
 using namespace std;
 
@@ -21,9 +22,9 @@ protected:
 public:
 	Entity(int id, int x, int y) : id(id), position({ x,y }) {};
 	virtual ~Entity() {};
-	Point getPosition() { return position; };
+	Point getPosition() const { return position; };
 	void setPosition(Point pos) { position = pos; };
-	int getId() { return id; };
+	int getId() const { return id; };
 	void setId(int id) { this->id = id; };
 };
 
@@ -33,16 +34,14 @@ class Enemy : public Entity
 	Point target;
 	Point nextPosition;
 public:
-	Enemy(int id, int x, int y, int life) : Entity(id, x, y), life(life) {};
+	Enemy(int id, int x, int y, int l) : Entity(id, x, y), life(l) {};
 	~Enemy() {};
-	Point getPosition() { return position; };
-	void setPosition(Point pos) { position = pos; };
-	int getLife() { return life; };
+	int getLife() const { return life; };
 	void setLife(int l) { life = l; };
 	void setTarget(Point p) { target = p; };
-	Point getTarget() { return target; };
+	Point getTarget() const { return target; };
 	void setNextPosition(Point p) { nextPosition = p; };
-	Point getNextPosition() { return nextPosition; };
+	Point getNextPosition() const { return nextPosition; };
 };
 
 class DataPoint : public Entity
@@ -61,17 +60,16 @@ float calculateDistance(const Point& p1, const Point& p2)
 	return sqrt((diffY * diffY) + (diffX * diffX));
 }
 
-Point calculateBarycentre(vector<Entity*> pointList)
+Point calculateBarycentre(vector<Entity*> &pointList)
 {
 	Point barycentre;
 
 	int xSum = 0;
 	int ySum = 0;
-	for (int i = 0; i < pointList.size(); ++i)
+	for (size_t i = 0; i < pointList.size(); ++i)
 	{
-		Point point = pointList[i]->getPosition();
-		xSum += point.x;
-		ySum += point.y;
+		xSum += pointList[i]->getPosition().x;
+		ySum += pointList[i]->getPosition().y;
 	}
 	barycentre.x = static_cast<int>(xSum / pointList.size());
 	barycentre.y = static_cast<int>(ySum / pointList.size());
@@ -80,13 +78,13 @@ Point calculateBarycentre(vector<Entity*> pointList)
 }
 
 
-Entity* calculateNearestEntity(Point pos, vector<Entity*> entityList) {
+Entity * calculateNearestEntity(const Point &pos, vector<Entity*> &entityList) {
 
-	Entity* nearestEntity = nullptr;
+	Entity * nearestEntity = nullptr;
 	float distanceMinimum = 999999;
-	for (int i = 0; i < entityList.size(); ++i)
+	for (size_t i = 0; i < entityList.size(); ++i)
 	{
-		const float distanceFromEntity = calculateDistance(pos, entityList[i]->getPosition());
+		float distanceFromEntity = calculateDistance(pos, entityList[i]->getPosition());
 
 		if (distanceFromEntity < distanceMinimum) {
 			nearestEntity = entityList[i];
@@ -96,7 +94,7 @@ Entity* calculateNearestEntity(Point pos, vector<Entity*> entityList) {
 	return nearestEntity;
 }
 
-Point calculateDeplacement(Point from, Point to, int distance_to_do) {
+Point calculateDeplacement(const Point &from, const Point &to, const float &distance_to_do) {
 	Point targetPosition;
 
 	targetPosition.x = static_cast<int>(from.x + (distance_to_do / calculateDistance(from, to))*(to.x - from.x));
@@ -105,22 +103,22 @@ Point calculateDeplacement(Point from, Point to, int distance_to_do) {
 	return targetPosition;
 }
 
-void calculateEnemiesDeplacements(vector<Entity*> enemyList, vector<Entity*> dataList) {
+void calculateEnemiesDeplacements(vector<Entity*> &enemyList, vector<Entity*> &dataList) {
 
-	for (int i = 0; i < enemyList.size(); ++i) {
-		Entity* nearestDataPoint = calculateNearestEntity(enemyList[i]->getPosition(), dataList);
-		static_cast<Enemy*>(enemyList[i])->setTarget(nearestDataPoint->getPosition());
+	for (size_t i = 0; i < enemyList.size(); ++i) {
+		Entity * nearestDataPoint = calculateNearestEntity(enemyList[i]->getPosition(), dataList);
+		static_cast<Enemy* >(enemyList[i])->setTarget(nearestDataPoint->getPosition());
 
 		Point nextPosition = calculateDeplacement(enemyList[i]->getPosition(), nearestDataPoint->getPosition(), 500);
-		static_cast<Enemy*>(enemyList[i])->setNextPosition(nextPosition);
+		static_cast<Enemy* >(enemyList[i])->setNextPosition(nextPosition);
 	}
 }
 
-Enemy* calculateDangerousEnemies(Point myPosition, vector<Entity*> enemyList) {
-	Enemy* dangerousEnemy;
-	for (int i = 0; i < enemyList.size(); ++i) {
-		dangerousEnemy = static_cast<Enemy*>(enemyList[i]);
-		if (calculateDistance(myPosition, dangerousEnemy->getNextPosition()) < 2000) {
+Enemy * calculateDangerousEnemies(Point &myPosition, vector<Entity*> &enemyList) {
+	Enemy * dangerousEnemy;
+	for (size_t i = 0; i < enemyList.size(); ++i) {
+		dangerousEnemy = static_cast<Enemy * >(enemyList[i]);
+		if (calculateDistance(myPosition, dangerousEnemy->getNextPosition()) < 2100) {
 			return dangerousEnemy;
 		}
 	}
@@ -128,8 +126,26 @@ Enemy* calculateDangerousEnemies(Point myPosition, vector<Entity*> enemyList) {
 }
 
 
-bool isThereEnemiesInRange(Point myPosition, vector<Entity*> enemyList, int range) {
-	for (int i = 0; i < enemyList.size(); ++i) {
+Enemy * calculateDangerousEnemies2(Point &myPosition, vector<Entity*> &enemyList) {
+	Enemy * dangerousEnemy;
+	for (size_t i = 0; i < enemyList.size(); ++i) {
+		dangerousEnemy = static_cast<Enemy *>(enemyList[i]);
+		if (calculateDistance(myPosition, dangerousEnemy->getNextPosition()) < 2100) {
+			return dangerousEnemy;
+		}
+
+		Point nextPosition2 = calculateDeplacement(dangerousEnemy->getPosition(), dangerousEnemy->getTarget(), 1500);
+		if (calculateDistance(myPosition, nextPosition2) < 2100) {
+			return dangerousEnemy;
+		}
+	}
+	return nullptr;
+}
+
+
+
+bool isThereEnemiesInRange(Point &myPosition, vector<Entity*> &enemyList, int range) {
+	for (size_t i = 0; i < enemyList.size(); ++i) {
 		if (calculateDistance(myPosition, enemyList[i]->getPosition()) < range) {
 			return true;
 		}
@@ -138,35 +154,94 @@ bool isThereEnemiesInRange(Point myPosition, vector<Entity*> enemyList, int rang
 }
 
 
-string generateAction(Point myPosition, vector<Entity*> dataList, vector<Entity*> enemyList)
+Entity * isThereDataPointInDanger(vector<Entity*> &dataList, vector<Entity*> &enemyList, int range, int lifeMax)
+{
+	float minDistance = range;
+	Entity * entity = nullptr;
+
+	for (size_t i = 0; i < dataList.size(); ++i) {
+
+		Entity * tmp = calculateNearestEntity(dataList[i]->getPosition(), enemyList);
+		if (calculateDistance(tmp->getPosition(), dataList[i]->getPosition()) < minDistance)
+		{
+			if (static_cast<Enemy * >(tmp)->getLife() < lifeMax)
+			{
+				minDistance = calculateDistance(tmp->getPosition(), dataList[i]->getPosition());
+				entity = tmp;
+			}
+		}
+	}
+	return entity;
+}
+
+
+Point findSafePosition(Point &myPosition, vector<Entity*> &enemyList, Enemy * &nearestEnemy) {
+	Point sumEnemyVectors = myPosition;
+	Point safePos;
+	vector<Enemy * > dangerousEnemies;
+	for (size_t i = 0; i < enemyList.size(); ++i) {
+		Enemy * dangerousEnemy = static_cast<Enemy * >(enemyList[i]);
+		if (calculateDistance(myPosition, dangerousEnemy->getPosition()) < 4000) {
+			dangerousEnemies.push_back(dangerousEnemy);
+		}
+	}
+	for (size_t i = 0; i < dangerousEnemies.size(); ++i) {
+		Enemy * dangerousEnemy = dangerousEnemies[i];
+
+		sumEnemyVectors.x = dangerousEnemy->getPosition().x - myPosition.x;
+		sumEnemyVectors.y = dangerousEnemy->getPosition().y - myPosition.x;
+	}
+
+	safePos = calculateDeplacement(myPosition, sumEnemyVectors, -1000);
+	int count = 0;
+	cerr << to_string(count + 1) + "st attempt = " + to_string(safePos.x) + "," + to_string(safePos.y) << endl;
+
+
+	double pi = std::acos(-1);
+	vector<double> angles = { pi / 6, pi / 4, pi / 3, pi / 2, 2 * pi / 3, 3 * pi / 4, 5 * pi / 6, -pi / 6, -pi / 4, -pi / 3, -pi / 2, -2 * pi / 3, -3 * pi / 4, -5 * pi / 6 };
+
+	Point tmpPos = calculateDeplacement(myPosition, nearestEnemy->getPosition(), -1000);
+	for (size_t i = 0; i < angles.size(); ++i)
+	{
+		Point targetVectorWithAngle;
+		Point targetVector = { tmpPos.x - myPosition.x, tmpPos.y - myPosition.y };
+		targetVectorWithAngle.x = cos(angles[i]) * targetVector.x - sin(angles[i]) * targetVector.y;
+		targetVectorWithAngle.y = sin(angles[i]) * targetVector.x - cos(angles[i]) * targetVector.y;
+		safePos = calculateDeplacement(myPosition, { myPosition.x + targetVectorWithAngle.x, myPosition.y + targetVectorWithAngle.y }, 1000);
+		cerr << to_string(count + 1) + "st attempt = " + to_string(safePos.x) + "," + to_string(safePos.y) << endl;
+
+		if (calculateDangerousEnemies(safePos, enemyList) == nullptr)
+		{
+			break;
+		}
+	}
+	return safePos;
+}
+
+string generateAction(Point &myPosition, vector<Entity*> &dataList, vector<Entity*> &enemyList)
 {
 
-	Enemy* nearestEnemy = static_cast<Enemy*>(calculateNearestEntity(myPosition, enemyList));
+	Enemy * nearestEnemy = static_cast<Enemy * >(calculateNearestEntity(myPosition, enemyList));
 
 	Point barycentre = calculateBarycentre(dataList);
 	cerr << "Barycentre : " + to_string(barycentre.x) + "," + to_string(barycentre.y) << endl;
 
 	calculateEnemiesDeplacements(enemyList, dataList);
 
-	Enemy* dangerousEnemy = calculateDangerousEnemies(myPosition, enemyList);
+	Enemy * dangerousEnemy = calculateDangerousEnemies(myPosition, enemyList);
 
 	if (dangerousEnemy != nullptr) {
-
+		cerr << "Enemy is dangerously approching" << endl;
 
 		Point target = calculateDeplacement(myPosition, nearestEnemy->getPosition(), -1000);
-		Enemy* dangerousEnemy = calculateDangerousEnemies(target, enemyList);
-		if (dangerousEnemy == nullptr) {
-			return "MOVE " + to_string(target.x) + " " + to_string(target.y);
-		}
-		else {
-			//TO DO
-			return "OUPS " + to_string(nearestEnemy->getId());
-		}
 
-	}
-	else if (calculateDistance(myPosition, barycentre) < 3000)
-	{
-		return "SHOOT " + to_string(nearestEnemy->getId());
+		cerr << "Nearest enemy = " + to_string(nearestEnemy->getPosition().x) + "," + to_string(nearestEnemy->getPosition().y) << endl;
+		Enemy * dangerousEnemy = calculateDangerousEnemies(target, enemyList);
+		if (dangerousEnemy != nullptr) {
+			cerr << "Aie... First escape attempt didn't work" << endl;
+			target = findSafePosition(myPosition, enemyList, nearestEnemy);
+		}
+		return "MOVE " + to_string(target.x) + " " + to_string(target.y);
 	}
 	else if (isThereEnemiesInRange(myPosition, enemyList, 3000))
 	{
@@ -174,18 +249,35 @@ string generateAction(Point myPosition, vector<Entity*> dataList, vector<Entity*
 	}
 	else
 	{
-		Point target = calculateDeplacement(myPosition, barycentre, 1000);
-		Enemy* dangerousEnemy = calculateDangerousEnemies(target, enemyList);
+		int range = 500;
+		int lifeMax = 3;
+
+		Entity * entity = isThereDataPointInDanger(dataList, enemyList, range, lifeMax);
+		if (entity != nullptr) {
+			return "SHOOT " + to_string(entity->getId());
+		}
+
+		range = 1000;
+		lifeMax = 5;
+
+		entity = isThereDataPointInDanger(dataList, enemyList, range, lifeMax);
+		if (entity != nullptr) {
+			return "SHOOT " + to_string(entity->getId());
+		}
+
+
+		Point target = calculateDeplacement(myPosition, nearestEnemy->getPosition(), 1000);
+		Enemy * dangerousEnemy = calculateDangerousEnemies2(target, enemyList);
 
 		if (dangerousEnemy == nullptr) {
-			return "MOVE " + to_string(barycentre.x) + " " + to_string(barycentre.y);
+			return "MOVE " + to_string(target.x) + " " + to_string(target.y);
 		}
 		else {
 			return "SHOOT " + to_string(nearestEnemy->getId());
 		}
+
 	}
 }
-
 
 int main()
 {
@@ -226,8 +318,8 @@ int main()
 		/*
 			Example of how to re-fill list. Datas are wrong
 		*/
-		int newDataListSize = 2;
-		for (int i = 0; i < dataList.size(); ++i)
+		size_t newDataListSize = 2;
+		for (size_t i = 0; i < dataList.size(); ++i)
 		{
 			if (i < newDataListSize) {
 				dataList[i]->setId(0);
@@ -239,8 +331,8 @@ int main()
 		}
 		dataList.resize(newDataListSize);
 
-		int newEnemyListSize = 3;
-		for (int i = 0; i < enemyList.size(); ++i)
+		size_t newEnemyListSize = 3;
+		for (size_t i = 0; i < enemyList.size(); ++i)
 		{
 			if (i < newEnemyListSize) {
 				enemyList[i]->setId(0);
@@ -255,7 +347,7 @@ int main()
 	}
 
 	string output = generateAction(myPosition, dataList, enemyList);
-	string expectedOutput = "MOVE 4700 3600";
+	string expectedOutput = "MOVE 7409 2995";
 
 	++i;
 	/*
@@ -269,7 +361,7 @@ int main()
 
 
 /*
-	Wrking main
+	Working main
 
 int main()
 {
